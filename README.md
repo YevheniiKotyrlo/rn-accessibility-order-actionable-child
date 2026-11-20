@@ -1,79 +1,16 @@
-# rn-accessible-image-keyboard-focus
+# Android: a row that `experimental_accessibilityOrder` names drops out of the accessibility tree when it is actionable but not focusable
 
-![Build](https://github.com/YevheniiKotyrlo/rn-accessible-image-keyboard-focus/workflows/Pre%20Merge%20Checks/badge.svg)
+React Native 0.90.0-nightly-20261120-bbfd39149, from the [React Native reproducer template](https://github.com/react-native-community/reproducer-react-native). `MainApplication.kt` turns on the `enableAccessibilityOrder` feature flag, which the canary and experimental flags turn on. `ReproducerApp/App.tsx` renders two identical rows: a `View` with `accessible={false}`, an `accessibilityLabel` and the `activate` accessibility action, holding two texts.
 
-This is your new React Native Reproducer project.
+- "row without order" sits in a plain container;
+- "row in order" sits in a container whose `experimental_accessibilityOrder` is `['row-in-order']`, the row's `nativeID`.
 
-# Reproducer TODO list
+Both rows should be nodes of the accessibility tree, as React Native's accessibility delegate takes a view that offers the click action as an accessibility element.
 
-- [x] 1. Create a new reproducer project.
-- [ ] 2. Git clone your repository locally.
-- [ ] 3. Edit the project to reproduce the failure you're seeing.
-- [ ] 4. Push your changes, so that Github Actions can run the CI.
-- [ ] 5. Make sure the repository is public and share the link with the issue you reported.
+## Steps
 
-# How to use this Reproducer
+1. Build and install the release APK: `cd ReproducerApp && yarn install && cd android && ./gradlew assembleRelease && adb install -r app/build/outputs/apk/release/app-release.apk`.
+2. Open the app and read the tree a screen reader gets: `adb shell uiautomator dump --compressed /sdcard/tree.xml && adb exec-out cat /sdcard/tree.xml`.
+3. "row without order" is a node holding "first text" and "second text". "row in order" is not a node: "third text" and "fourth text" sit directly in its container.
 
-This project has been created with `npx @react-native-community/cli init` and is a vanilla React Native app.
-
-> [!IMPORTANT]  
-> Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/set-up-your-environment) so that you have a working environment locally.
-
-## Step 1: Start the Metro Server
-
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
-
-To start Metro, run the following command from the _root_ of your React Native project:
-
-```bash
-# using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Start your Application
-
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
-
-```bash
-# using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### For iOS
-
-First, make sure you install dependencies with:
-
-```bash
-cd ios && bundle install && bundle exec pod install
-```
-
-Then you can run the iOS app with:
-
-```bash
-# using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
-
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
-
-## Step 3: Modifying your App
-
-Now that you have successfully run the app, let's modify it.
-
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
-
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+Scripted: `./reproduce.sh`, with one Android device attached, builds and installs the app, starts it and prints the nodes with a text or a label from `uiautomator dump --compressed`. It exits 1 while "row in order" is missing and its texts take its place although "row without order" is a node, 0 once "row in order" is a node too, and 2 when "row without order" or the ordered row's texts are missing, or a step fails.
